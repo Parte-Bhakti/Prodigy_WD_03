@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 350px;
+            color: #333;
+        }
+
+        .status {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #444;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+            aspect-ratio: 1/1;
+        }
+
+        .cell {
+            background-color: #fff;
+            border: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            aspect-ratio: 1/1;
+            border-radius: 5px;
+        }
+
+        .cell:hover {
+            background-color: #f9f9f9;
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .player-selection {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .player-selection button {
+            margin: 0;
+            padding: 8px 15px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .player-selection button.active {
+            background-color: #2196F3;
+        }
+
+        #vsComputer {
+            background-color: #ff9800;
+        }
+
+        #vsComputer.active {
+            background-color: #f57c00;
+        }
+
+        #reset {
+            background-color: #f44336;
+            width: 100%;
+        }
+
+        #reset:hover {
+            background-color: #d32f2f;
+        }
+
+        .x-symbol {
+            color: #2196F3;
+        }
+
+        .o-symbol {
+            color: #F44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Tic-Tac-Toe</h1>
+        <div class="player-selection">
+            <button id="playerX" class="active">Play as X</button>
+            <button id="playerO">Play as O</button>
+            <button id="vsComputer">vs Computer</button>
+        </div>
+        <div class="status" id="status">Player X's turn</div>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <div class="controls">
+            <button id="reset">Reset Game</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('board');
+            const cells = document.querySelectorAll('.cell');
+            const status = document.getElementById('status');
+            const resetButton = document.getElementById('reset');
+            const playerXBtn = document.getElementById('playerX');
+            const playerOBtn = document.getElementById('playerO');
+            const vsComputerBtn = document.getElementById('vsComputer');
+
+            let currentPlayer = 'X';
+            let gameState = ['', '', '', '', '', '', '', '', ''];
+            let gameActive = true;
+            let vsComputer = false;
+            let computerPlayer = 'O';
+            let humanPlayer = 'X';
+
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+
+            // Initialize game
+            initGame();
+
+            function initGame() {
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                    cell.addEventListener('click', handleCellClick);
+                });
+                resetButton.addEventListener('click', resetGame);
+                playerXBtn.addEventListener('click', () => setPlayer('X'));
+                playerOBtn.addEventListener('click', () => setPlayer('O'));
+                vsComputerBtn.addEventListener('click', toggleComputerMode);
+            }
+
+            function handleCellClick(e) {
+                const clickedCell = e.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+                if (gameState[clickedCellIndex] !== '' || !gameActive) {
+                    return;
+                }
+
+                updateCell(clickedCell, clickedCellIndex);
+                checkResult();
+
+                if (vsComputer && gameActive && currentPlayer === computerPlayer) {
+                    setTimeout(computerMove, 500);
+                }
+            }
+
+            function updateCell(cell, index) {
+                gameState[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+                cell.classList.add(currentPlayer === 'X' ? 'x-symbol' : 'o-symbol');
+            }
+
+            function checkResult() {
+                let roundWon = false;
+
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const [a, b, c] = winningConditions[i];
+                    if (gameState[a] === '' || gameState[b] === '' || gameState[c] === '') {
+                        continue;
+                    }
+
+                    if (gameState[a] === gameState[b] && gameState[b] === gameState[c]) {
+                        roundWon = true;
+                        // Highlight winning cells
+                        document.querySelector(`.cell[data-index="${a}"]`).style.backgroundColor = '#e8f5e9';
+                        document.querySelector(`.cell[data-index="${b}"]`).style.backgroundColor = '#e8f5e9';
+                        document.querySelector(`.cell[data-index="${c}"]`).style.backgroundColor = '#e8f5e9';
+                        break;
+                    }
+                }
+
+                if (roundWon) {
+                    status.textContent = `Player ${currentPlayer} wins!`;
+                    status.style.color = currentPlayer === 'X' ? '#2196F3' : '#F44336';
+                    gameActive = false;
+                    return;
+                }
+
+                if (!gameState.includes('')) {
+                    status.textContent = "Game ended in a draw!";
+                    status.style.color = '#9E9E9E';
+                    gameActive = false;
+                    return;
+                }
+
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                status.textContent = `Player ${currentPlayer}'s turn`;
+                status.style.color = '#333';
+            }
+
+            function resetGame() {
+                currentPlayer = humanPlayer;
+                gameState = ['', '', '', '', '', '', '', '', ''];
+                gameActive = true;
+                status.textContent = `Player ${currentPlayer}'s turn`;
+                status.style.color = '#333';
+
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                    cell.style.backgroundColor = '';
+                });
+
+                if (vsComputer && currentPlayer === computerPlayer) {
+                    setTimeout(computerMove, 500);
+                }
+            }
+
+            function computerMove() {
+                if (!gameActive) return;
+
+                // Simple AI: first try to win, then block, then random move
+                let bestMove = findWinningMove(computerPlayer);
+                if (bestMove === -1) bestMove = findWinningMove(humanPlayer);
+                if (bestMove === -1) bestMove = getRandomMove();
+
+                if (bestMove !== -1) {
+                    const cell = document.querySelector(`.cell[data-index="${bestMove}"]`);
+                    updateCell(cell, bestMove);
+                    checkResult();
+                }
+            }
+
+            function findWinningMove(player) {
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const [a, b, c] = winningConditions[i];
+                    const spots = [gameState[a], gameState[b], gameState[c]];
+                    
+                    if (spots.filter(s => s === player).length === 2 && spots.includes('')) {
+                        return [a, b, c][spots.indexOf('')];
+                    }
+                }
+                return -1;
+            }
+
+            function getRandomMove() {
+                const availableMoves = gameState.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+                if (availableMoves.length > 0) {
+                    return availableMoves[Math.floor(Math.random() * availableMoves.length)];
+                }
+                return -1;
+            }
+
+            function setPlayer(player) {
+                humanPlayer = player;
+                computerPlayer = player === 'X' ? 'O' : 'X';
+                playerXBtn.classList.toggle('active', player === 'X');
+                playerOBtn.classList.toggle('active', player === 'O');
+                resetGame();
+            }
+
+            function toggleComputerMode() {
+                vsComputer = !vsComputer;
+                vsComputerBtn.classList.toggle('active', vsComputer);
+                vsComputerBtn.textContent = vsComputer ? "vs Computer (ON)" : "vs Computer";
+                resetGame();
+            }
+        });
+    </script>
+</body>
+</html>
